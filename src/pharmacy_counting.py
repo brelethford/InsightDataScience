@@ -1,56 +1,33 @@
 #!/usr/bin/bash
 
-############
-# PREAMBLE #
-############
-
-### Import Libraries
-import numpy as np
-import argparse, os
-
-#############
-# ARGUMENTS #
-#############
-
-p = argparse.ArgumentParser(description="Aggregates drug prescription data to yield top drug costs",
-                            formatter_class=argparse.RawTextHelpFormatter)
-p.add_argument("--indata", default="itcont.txt", type=str,
-                help="Name of datafile used for aggregation")
-p.add_argument("--outdata", default="top_cost_drug.txt", type=str,
-                help="Name of output txt file")
-p.add_argument("--dec", dest='dec', action='store_true',
-                help="Toggles total drug cost to be float (decimals) instead of int")
-
-
-args = p.parse_args()
-indata = args.indata
-outdata = args.outdata 
-dec = args.dec
-print("Rounding to nearest whole dollar amount: {}".format(not dec))
-
 ###############
 # PREPERATION #
 ###############
 
+indata = 'itcont.txt'
+outdata = 'top_cost_drug.txt' 
+dec = False
+print("Rounding to nearest whole dollar amount: {}".format(not dec))
+
 ### Define input / output folders relative to cwd (Note - this only works when run from 'run.sh' in the base folder)
-base_dir = os.getcwd()
-input_dir = base_dir + '/input/'
-output_dir = base_dir + '/output/'
+input_dir = './input/'
+output_dir = './output/'
 infile = input_dir+indata
 outfile = output_dir+outdata
 
 ### Load the input data file and separate the classes of information
 print('Grabbing data from {}...'.format(infile))
-rawdata = np.genfromtxt(input_dir+indata, dtype=str, delimiter=',')
+input_file = open(infile,'r')
+rawdata = [line.strip('\n').split(',') for line in  input_file.readlines()]
 header = rawdata[0]
-ID, last, first, drug, cost = rawdata[1:].T
+ID, last, first, drugs, cost = [list(i) for i in zip(*rawdata[1:])]
 
 ### Convert ID and cost into numbers 
-ID = ID.astype(int)
-cost = cost.astype(float)
+ID = map(int,ID)
+cost = map(float,cost)
 
 ### Recreate an array with all relevant information, sort by drug type
-data = sorted(zip(drug,ID,cost))
+data = sorted(zip(drugs,ID,cost))
 
 #############
 # AGGREGATE # 
@@ -62,15 +39,16 @@ output=[]
 
 ### The following loop assumes an output for sumcost that is rounded to the nearest integer, based on test1 output.
 
-for d in np.unique(drug):
+for d in list(set(drugs)):
   print('Collecting records related to {}...'.format(d))
-  drugmask = [drug==d][0]
+  drugmask = [drug==d for drug in drugs]
   drugtype = d
-  number = np.count_nonzero(drugmask)
+  number = sum(drugmask)
+  subcost = [c*d for c,d in zip(cost,drugmask)]
   if dec:
-    sumcost = sum(cost[drugmask])
+    sumcost = sum(subcost)
   else:
-    sumcost = int(np.round(sum(cost[drugmask])))
+    sumcost = int(round(sum(subcost)))
   output.append((drugtype,number,sumcost))
 
 print('Collection finished.')
