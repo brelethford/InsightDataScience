@@ -26,14 +26,13 @@ args = p.parse_args()
 indata = args.indata
 outdata = args.outdata 
 dec = args.dec
-print(dec)
 print("Rounding to nearest whole dollar amount: {}".format(not dec))
 
 ###############
 # PREPERATION #
 ###############
 
-### Define input / output folders relative to pwd (Note - this only works when run from 'run.sh' in the base folder)
+### Define input / output folders relative to cwd (Note - this only works when run from 'run.sh' in the base folder)
 base_dir = os.getcwd()
 input_dir = base_dir + '/input/'
 output_dir = base_dir + '/output/'
@@ -61,7 +60,7 @@ data = sorted(zip(drug,ID,cost))
 
 output=[]
 
-### The following loop assumes an output for sumcost that is rounded to the nearest integer, based on test1 output
+### The following loop assumes an output for sumcost that is rounded to the nearest integer, based on test1 output.
 
 for d in np.unique(drug):
   print('Collecting records related to {}...'.format(d))
@@ -72,7 +71,7 @@ for d in np.unique(drug):
     sumcost = sum(cost[drugmask])
   else:
     sumcost = int(np.round(sum(cost[drugmask])))
-  output.append((sumcost,drugtype,number))
+  output.append((drugtype,number,sumcost))
 
 print('Collection finished.')
 
@@ -80,9 +79,9 @@ print('Collection finished.')
 # OUTPUT #
 ##########
 
-### Sorting is simple if the sumcost comes first
+### Sorting happens first by reversed sumcost, then by drug in alphebetical order
 
-output.sort(reverse=True)
+output = sorted(output,key=lambda x: (-x[2],x[1]))
 
 ### Open a file to store things in, then write the drugs (in order of greatest cost) to file
 print('Printing results to {}...'.format(outfile))
@@ -95,9 +94,9 @@ text_file.write('drug_name,num_prescriber,total_cost\n')
 ### Write output of each line
 for entry in output:
   if dec:
-    text_file.write('{0:s},{1:d},{2:.2f}\n'.format(entry[1],entry[2],entry[0]))
+    text_file.write('{0:s},{1:d},{2:.2f}\n'.format(entry[0],entry[1],entry[2]))
   else: 
-    text_file.write('{0:s},{1:d},{2:d}\n'.format(entry[1],entry[2],entry[0]))
+    text_file.write('{0:s},{1:d},{2:d}\n'.format(entry[0],entry[1],entry[2]))
 
 text_file.close()
 print('End program.')
